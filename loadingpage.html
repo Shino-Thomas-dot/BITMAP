@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading Animation with Scrolling Text</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #fff;
+            color: #000;
+            font-family: sans-serif;
+            overflow: hidden;
+        }
+        
+        .container {
+            position: relative;
+            width: 100%;
+            height: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .scrolling-text-container {
+            position: absolute;
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        
+        .scrolling-text {
+            display: inline-block;
+            font-size: 48px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            /* Pre-position text so it's visible immediately */
+            padding-left: 100%;
+            animation: scroll-text 30s linear infinite; /* Slower animation: 30s */
+        }
+        
+        @keyframes scroll-text {
+            0% {
+                transform: translateX(0);
+            }
+            100% {
+                transform: translateX(-200%); /* Move further to ensure continuous flow */
+            }
+        }
+        
+        .loading-container {
+            position: relative;
+            width: 320px;
+            height: 60px;
+            background-color: #000;
+            border-radius: 30px;
+            overflow: hidden;
+            z-index: 10;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+        }
+        
+        .loading-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 30px;
+            background: #000;
+            overflow: hidden;
+        }
+        
+        .loading-bar::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(90deg, #9c56ff, #4cc3ff);
+            border-radius: 32px;
+            z-index: -1;
+        }
+        
+        .loading-text {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            box-sizing: border-box;
+            z-index: 2;
+            color: #fff;
+            font-weight: normal;
+            font-size: 24px;
+        }
+        
+        .loading-progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s;
+            z-index: 1;
+            background: linear-gradient(90deg, #000, #4cc3ff);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="scrolling-text-container">
+            <!-- Duplicate the text to ensure continuous scrolling -->
+            <div class="scrolling-text">BITMAP 6 BITMAP 6 BITMAP 6 BITMAP 6 BITMAP 6 BITMAP 6 BITMAP 6 BITMAP 6 BITMAP 6 BITMAP 6</div>
+        </div>
+        
+        <div class="loading-container">
+            <div class="loading-bar">
+                <div class="loading-text">
+                    <span>loading</span>
+                    <span id="percentage">0%</span>
+                </div>
+                <div class="loading-progress" id="progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Immediately position text to be visible (no delay)
+        document.addEventListener('DOMContentLoaded', function() {
+            // Simulate loading progress
+            let progress = 0;
+            const progressElement = document.getElementById('progress');
+            const percentageText = document.getElementById('percentage');
+            
+            function updateProgress() {
+                if (progress < 100) {
+                    progress += Math.random() * 3;
+                    if (progress > 100) progress = 100;
+                    
+                    const progressValue = Math.floor(progress);
+                    progressElement.style.width = progressValue + '%';
+                    percentageText.textContent = progressValue + '%';
+                    
+                    setTimeout(updateProgress, 150);
+                }
+            }
+            
+            // Start the loading animation immediately
+            updateProgress();
+        });
+    </script>
+</body>
+</html>

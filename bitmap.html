@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BITMAP Particle Glow</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: radial-gradient(circle at center, #0f0f0f, #000);
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bg"></canvas>
+
+  <!-- Shader scripts -->
+  <script id="vertexShader" type="x-shader/x-vertex">
+    varying vec3 vColor;
+    void main() {
+      vColor = vec3(position.x + 4.0, position.y + 2.0, 1.0) / vec3(8.0, 4.0, 1.0); 
+      gl_PointSize = 4.0;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  </script>
+
+  <script id="fragmentShader" type="x-shader/x-fragment">
+    varying vec3 vColor;
+    void main() {
+      float dist = distance(gl_PointCoord, vec2(0.5));
+      if (dist > 0.5) discard;
+      gl_FragColor = vec4(mix(vec3(0.0, 1.0, 1.0), vec3(1.0, 0.0, 1.0), vColor.x), 1.0);
+    }
+  </script>
+
+  <!-- Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('bg'), alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Resize handler
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Create text canvas
+    const textCanvas = document.createElement('canvas');
+    textCanvas.width = 512;
+    textCanvas.height = 256;
+    const ctx = textCanvas.getContext('2d');
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 120px Arial';
+    ctx.fillText('BITMAP', 50, 150);
+
+    const imageData = ctx.getImageData(0, 0, textCanvas.width, textCanvas.height);
+    const geometry = new THREE.BufferGeometry();
+
+    const positions = [];
+    const originalPositions = [];
+
+    for (let y = 0; y < textCanvas.height; y += 3) {
+      for (let x = 0; x < textCanvas.width; x += 3) {
+        const index = (y * textCanvas.width + x) * 4;
+        if (imageData.data[index + 3] > 128) {
+          const xPos = x / 64 - 4;
+          const yPos = -(y / 64 - 2);
+          const zPos = 0;
+          positions.push(xPos, yPos, zPos);
+          originalPositions.push(xPos, yPos, zPos);
+        }
+      }
+    }
+
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+
+    // Gradient & Circle Shader Material
+    const material = new THREE.ShaderMaterial({
+      vertexShader: document.getElementById('vertexShader').textContent,
+      fragmentShader: document.getElementById('fragmentShader').textContent,
+      transparent: true
+    });
+
+    const points = new THREE.Points(geometry, material);
+    scene.add(points);
+
+    camera.position.z = 5;
+
+    const mouse = new THREE.Vector2();
+    const raycaster = new THREE.Raycaster();
+    let hoverEffect = false;
+
+    window.addEventListener('mousemove', (event) => {
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObject(points);
+      hoverEffect = intersects.length > 0;
+    });
+
+    const animate = () => {
+      requestAnimationFrame(animate);
+      const positionsAttr = points.geometry.attributes.position;
+
+      for (let i = 0; i < positionsAttr.count; i++) {
+        const ix = i * 3;
+        let dx = originalPositions[ix + 0] - positionsAttr.array[ix + 0];
+        let dy = originalPositions[ix + 1] - positionsAttr.array[ix + 1];
+        let dz = originalPositions[ix + 2] - positionsAttr.array[ix + 2];
+
+        if (hoverEffect) {
+          positionsAttr.array[ix + 0] += (Math.random() - 0.5) * 0.02;
+          positionsAttr.array[ix + 1] += (Math.random() - 0.5) * 0.02;
+          positionsAttr.array[ix + 2] += (Math.random() - 0.5) * 0.02;
+        } else {
+          positionsAttr.array[ix + 0] += dx * 0.08;
+          positionsAttr.array[ix + 1] += dy * 0.08;
+          positionsAttr.array[ix + 2] += dz * 0.08;
+        }
+      }
+
+      positionsAttr.needsUpdate = true;
+      renderer.render(scene, camera);
+    };
+
+    animate();
+  </script>
+</body>
+</html>

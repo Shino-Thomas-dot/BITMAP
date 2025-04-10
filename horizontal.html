@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bitmap Horizontal Scroll</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #0f0f0f;
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      overflow-x: hidden;
+    }
+    
+    body.scroll-lock {
+      overflow: hidden;
+    }
+    
+    h1 {
+      text-align: center;
+      margin-top: 2rem;
+      font-size: 2rem;
+    }
+    
+    section.blank-section {
+      height: 100vh;
+      background: #181818;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      color: #ccc;
+    }
+    .horizontal-scroll-section {
+  height: 100%;
+  display: flex;
+  white-space: nowrap;
+  transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1); /* Smoother and slower */
+}
+
+    .horizontal-scroll-wrapper {
+      height: 100vh;
+      width: 100%;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    
+    .card {
+      flex: 0 0 80vw;
+      height: calc(100vh - 4rem);
+      margin: 2rem;
+      background: #1a1a1a;
+      border-radius: 20px;
+      padding: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.6);
+      transition: transform 0.3s;
+    }
+    
+    .card:hover {
+  transform: scale(1.02);
+  transition: transform 0.5s ease-in-out;
+}
+
+    
+    .scroll-indicator {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 10px 15px;
+      border-radius: 20px;
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    
+    .scroll-indicator.visible {
+      opacity: 1;
+    }
+    
+    @media (min-width: 768px) {
+      .card {
+        flex: 0 0 350px;
+      }
+    }
+  </style>
+</head>
+<body>
+  
+  <section class="blank-section">
+    Top Blank Section
+  </section>
+  
+  <h1>Explore Bitmap Highlights</h1>
+  
+  <div class="horizontal-scroll-wrapper" id="scroll-wrapper">
+    <div class="horizontal-scroll-section" id="scroll-section">
+      <div class="card">Card 1: Word Search</div>
+      <div class="card">Card 2: Tech Quiz</div>
+      <div class="card">Card 3: AI Image Guess</div>
+      <div class="card">Card 4: Plagiarism Checker</div>
+      <div class="card">Card 5: Tech Tools</div>
+      <div class="card">Card 6: Weekly Updates</div>
+      <div class="card">Card 7: Project Highlights</div>
+      <div class="card">Card 8: Events & Workshops</div>
+    </div>
+    
+    <div class="scroll-indicator" id="scroll-indicator">
+      Scroll horizontally to view all cards
+    </div>
+  </div>
+  
+  <section class="blank-section">
+    Bottom Blank Section
+  </section>
+  
+  <script>
+    // Elements
+    const scrollWrapper = document.getElementById('scroll-wrapper');
+    const scrollSection = document.getElementById('scroll-section');
+    const scrollIndicator = document.getElementById('scroll-indicator');
+    const cards = scrollSection.querySelectorAll('.card');
+    
+    // Variables
+    let currentCard = 0;
+    let isHorizontalSectionInView = false;
+    let startY;
+    let startX;
+    let isScrolling = false;
+    let cardWidth;
+    let totalCards = cards.length;
+    let lockVerticalScroll = false;
+    let lastScrollPosition = 0;
+    let scrollDirection = 'none';
+    
+    // Calculate dimensions
+    function calculateDimensions() {
+      cardWidth = cards[0].offsetWidth;
+    }
+    
+    // Initialize dimensions
+    calculateDimensions();
+    window.addEventListener('resize', calculateDimensions);
+    
+    // Function to go to a specific card
+    function goToCard(index) {
+      if (index < 0) index = 0;
+      if (index >= totalCards) index = totalCards - 1;
+      
+      currentCard = index;
+      const offset = -index * cardWidth;
+      
+      scrollSection.style.transform = `translateX(${offset}px)`;
+      
+      // Update scroll indicator based on position
+      if (index === totalCards - 1) {
+        scrollIndicator.textContent = "Scroll down to continue";
+        // Only unlock if we're scrolling forward
+        if (scrollDirection === 'down') {
+          lockVerticalScroll = false;
+          document.body.classList.remove('scroll-lock');
+        }
+      } else if (index === 0) {
+        scrollIndicator.textContent = "Scroll up to return";
+        // Only unlock if we're scrolling backward
+        if (scrollDirection === 'up') {
+          lockVerticalScroll = false;
+          document.body.classList.remove('scroll-lock');
+        }
+      } else {
+        scrollIndicator.textContent = "Scroll horizontally to navigate";
+        lockVerticalScroll = true;
+        document.body.classList.add('scroll-lock');
+      }
+    }
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (!isHorizontalSectionInView) return;
+      
+      if (e.key === 'ArrowLeft') {
+        scrollDirection = 'up';
+        goToCard(currentCard - 1);
+      } else if (e.key === 'ArrowRight') {
+        scrollDirection = 'down';
+        goToCard(currentCard + 1);
+      }
+    });
+    
+    // Detect when horizontal section is in view
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            isHorizontalSectionInView = true;
+            scrollIndicator.classList.add('visible');
+            
+            // Lock vertical scroll if not at the appropriate end based on direction
+            if ((scrollDirection === 'down' && currentCard < totalCards - 1) || 
+                (scrollDirection === 'up' && currentCard > 0) || 
+                scrollDirection === 'none') {
+              lockVerticalScroll = true;
+              document.body.classList.add('scroll-lock');
+              
+              // Ensure we're positioned correctly at the scroll wrapper
+              const rect = scrollWrapper.getBoundingClientRect();
+              if (rect.top < 0 && rect.top > -50) {
+                window.scrollTo({
+                  top: scrollWrapper.offsetTop,
+                  behavior: 'smooth'
+                });
+              }
+            }
+          } else {
+            isHorizontalSectionInView = false;
+            scrollIndicator.classList.remove('visible');
+            
+            // Unlock vertical scroll when section is not in view
+            lockVerticalScroll = false;
+            document.body.classList.remove('scroll-lock');
+          }
+        });
+      },
+      { threshold: 0.3 }
+    );
+    
+    observer.observe(scrollWrapper);
+    
+    // Update scroll direction
+    window.addEventListener('scroll', () => {
+      const currentScrollPosition = window.pageYOffset;
+      
+      if (currentScrollPosition > lastScrollPosition) {
+        scrollDirection = 'down';
+      } else if (currentScrollPosition < lastScrollPosition) {
+        scrollDirection = 'up';
+      }
+      
+      lastScrollPosition = currentScrollPosition;
+      
+      // Check if section is approaching viewport
+      const rect = scrollWrapper.getBoundingClientRect();
+      
+      if (rect.top <= 0 && rect.bottom >= 0) {
+        isHorizontalSectionInView = true;
+        scrollIndicator.classList.add('visible');
+        
+        // If scrolling down and not at the end, lock at the top of the section
+        if (scrollDirection === 'down' && currentCard < totalCards - 1 && rect.top <= 0) {
+          lockVerticalScroll = true;
+          document.body.classList.add('scroll-lock');
+          window.scrollTo({
+            top: scrollWrapper.offsetTop
+          });
+        }
+        // If scrolling up and not at the start, lock at the top of the section
+        else if (scrollDirection === 'up' && currentCard > 0 && rect.top <= 0) {
+          lockVerticalScroll = true;
+          document.body.classList.add('scroll-lock');
+          window.scrollTo({
+            top: scrollWrapper.offsetTop
+          });
+        }
+      }
+    });
+    
+    // Wheel event handler
+    window.addEventListener('wheel', (e) => {
+      if (!isHorizontalSectionInView) return;
+      
+      // Detect scroll direction
+      if (e.deltaY > 0) {
+        scrollDirection = 'down';
+      } else if (e.deltaY < 0) {
+        scrollDirection = 'up';
+      }
+      
+      // If we're at the end card and scrolling down, allow vertical scrolling
+      if (currentCard === totalCards - 1 && scrollDirection === 'down') {
+        return;
+      }
+      
+      // If we're at the first card and scrolling up, allow vertical scrolling
+      if (currentCard === 0 && scrollDirection === 'up') {
+        return;
+      }
+      
+      e.preventDefault();
+      
+      // Horizontal scrolling with wheel
+      if (e.deltaY > 20 || e.deltaX > 20) {
+        goToCard(currentCard + 1);
+      } else if (e.deltaY < -20 || e.deltaX < -20) {
+        goToCard(currentCard - 1);
+      }
+    }, { passive: false });
+    
+    // Touch events for mobile
+    scrollWrapper.addEventListener('touchstart', (e) => {
+      if (!isHorizontalSectionInView) return;
+      
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      isScrolling = true;
+    }, { passive: true });
+    
+    scrollWrapper.addEventListener('touchmove', (e) => {
+      if (!isScrolling || !isHorizontalSectionInView) return;
+      
+      const x = e.touches[0].clientX;
+      const y = e.touches[0].clientY;
+      const diffX = startX - x;
+      const diffY = startY - y;
+      
+      // Determine scroll direction
+      if (diffY > 0) {
+        scrollDirection = 'down';
+      } else if (diffY < 0) {
+        scrollDirection = 'up';
+      }
+      
+      // Allow vertical scrolling if at appropriate end
+      if ((currentCard === totalCards - 1 && scrollDirection === 'down') || 
+          (currentCard === 0 && scrollDirection === 'up')) {
+        return;
+      }
+      
+      // If horizontal movement is greater than vertical
+      if (Math.abs(diffX) > Math.abs(diffY)) {
+        e.preventDefault();
+      } else if (Math.abs(diffY) > 10) {
+        // Prevent vertical scrolling if not at the appropriate end
+        e.preventDefault();
+      }
+    }, { passive: false });
+    
+    scrollWrapper.addEventListener('touchend', (e) => {
+      if (!isScrolling || !isHorizontalSectionInView) return;
+      
+      const x = e.changedTouches[0].clientX;
+      const diffX = startX - x;
+      
+      // Swipe detection
+      if (Math.abs(diffX) > 50) {
+        if (diffX > 0) {
+          scrollDirection = 'down';
+          goToCard(currentCard + 1);
+        } else {
+          scrollDirection = 'up';
+          goToCard(currentCard - 1);
+        }
+      }
+      
+      isScrolling = false;
+    }, { passive: true });
+    
+    // Initialize
+    goToCard(0);
+  </script>
+ 
+</body>
+</html>
